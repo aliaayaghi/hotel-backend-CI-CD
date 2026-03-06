@@ -2,9 +2,10 @@ package com.HotelBook.HotelBooking.room;
 
 
 
+import com.HotelBook.HotelBooking.roomamenity.RoomAmenity;
 import com.HotelBook.HotelBooking.roomphoto.RoomPhoto;
 import com.hotelapp.roomaccessibility.RoomAccessibility;
-import com.hotelapp.roomamenity.RoomAmenity;
+
 
 import jakarta.persistence.*;
 import lombok.*;

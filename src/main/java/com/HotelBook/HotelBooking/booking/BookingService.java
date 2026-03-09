@@ -3,6 +3,7 @@ package com.HotelBook.HotelBooking.booking;
 
 import com.HotelBook.HotelBooking.cancellation.CancellationPolicy;
 import com.HotelBook.HotelBooking.cancellation.CancellationPolicyService;
+import com.HotelBook.HotelBooking.common.ConflictException;
 import com.HotelBook.HotelBooking.common.ResourceNotFoundException;
 import com.HotelBook.HotelBooking.payment.PaymentRepository;
 import com.HotelBook.HotelBooking.pricing.PricingRuleService;

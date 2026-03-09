@@ -2,6 +2,8 @@ package com.HotelBook.HotelBooking.roomavailability;
 
 
 
+import com.hotelapp.common.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -20,68 +22,81 @@ public class RoomAvailabilityController {
 
 
     @GetMapping("/api/rooms/{roomId}/availability")
-    public ResponseEntity<List<RoomAvailabilityService.AvailabilitySummary>> getAvailability(
+    public ResponseEntity<ApiResponse<List<AvailabilitySummaryResponseDTO>>> getAvailability(
             @PathVariable UUID roomId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam int roomQuantity) {
 
-        List<RoomAvailabilityService.AvailabilitySummary> summary =
+        if (!to.isAfter(from)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("'to' must be after 'from'."));
+        }
+
+        List<AvailabilitySummaryResponseDTO> summary =
                 availabilityService.getAvailabilitySummary(roomId, from, to, roomQuantity);
-        return ResponseEntity.ok(summary);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Availability retrieved for " + summary.size() + " dates.", summary));
     }
 
 
     @GetMapping("/api/hotels/{hotelId}/rooms/{roomId}/availability")
-    public ResponseEntity<List<RoomAvailabilityService.AvailabilitySummary>> getAvailabilityNested(
+    public ResponseEntity<ApiResponse<List<AvailabilitySummaryResponseDTO>>> getAvailabilityNested(
             @PathVariable UUID hotelId,
             @PathVariable UUID roomId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam int roomQuantity) {
 
-
+        // Delegate to the flat path — hotelId is intentionally unused (rooms have unique UUIDs)
         return getAvailability(roomId, from, to, roomQuantity);
     }
 
     @GetMapping("/api/rooms/{roomId}/availability/blocked")
-    public ResponseEntity<List<RoomAvailability>> getBlockedDates(
+    public ResponseEntity<ApiResponse<List<RoomAvailabilityResponseDTO>>> getBlockedDates(
             @PathVariable UUID roomId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-        return ResponseEntity.ok(availabilityService.getBlockedDates(roomId, from, to));
+        if (!to.isAfter(from)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("'to' must be after 'from'."));
+        }
+
+        List<RoomAvailabilityResponseDTO> blocked =
+                availabilityService.getBlockedDates(roomId, from, to);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                blocked.size() + " blocked date(s) found.", blocked));
     }
 
 
     @PostMapping("/api/rooms/{roomId}/availability/block")
-    public ResponseEntity<String> blockDates(
+    public ResponseEntity<ApiResponse<List<AvailabilitySummaryResponseDTO>>> blockDates(
             @PathVariable UUID roomId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(defaultValue = "MANAGER_BLOCK") String reason) {
+            @RequestParam int roomQuantity,
+            @Valid @RequestBody RoomAvailabilityRequestDTO request) {
 
-        RoomAvailability.BlockedReason blockedReason;
-        try {
-            blockedReason = RoomAvailability.BlockedReason.valueOf(reason.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body("Invalid reason. Must be: MAINTENANCE or MANAGER_BLOCK");
-        }
+        List<AvailabilitySummaryResponseDTO> result =
+                availabilityService.manualBlock(roomId, roomQuantity, request);
 
-        availabilityService.manualBlock(roomId, from, to, blockedReason);
-        return ResponseEntity.ok("Dates blocked from " + from + " to " + to
-                + " with reason: " + reason);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Dates blocked from " + request.getFromDate() + " to " + request.getToDate()
+                        + " (reason: " + request.getReason() + ").", result));
     }
 
-
     @DeleteMapping("/api/rooms/{roomId}/availability/unblock")
-    public ResponseEntity<String> unblockDates(
+    public ResponseEntity<ApiResponse<List<AvailabilitySummaryResponseDTO>>> unblockDates(
             @PathVariable UUID roomId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam int roomQuantity,
+            @Valid @RequestBody RoomAvailabilityRequestDTO request) {
 
-        availabilityService.manualUnblock(roomId, from, to);
-        return ResponseEntity.ok("Dates unblocked from " + from + " to " + to);
+        List<AvailabilitySummaryResponseDTO> result =
+                availabilityService.manualUnblock(roomId, roomQuantity, request);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Dates unblocked from " + request.getFromDate() + " to " + request.getToDate() + ".",
+                result));
     }
 }

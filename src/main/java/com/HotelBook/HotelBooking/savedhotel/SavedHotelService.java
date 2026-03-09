@@ -1,8 +1,8 @@
 package com.HotelBook.HotelBooking.savedhotel;
 
 
+import com.HotelBook.HotelBooking.common.ResourceNotFoundException;
 import com.hotelapp.common.ConflictException;
-import com.hotelapp.common.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

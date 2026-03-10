@@ -1,6 +1,7 @@
 package com.HotelBook.security;
 
 
+import com.HotelBook.catalog.user.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -48,7 +49,7 @@ import java.util.function.Function;
                     .orElse(""));
 
 
-            if (userDetails instanceof com.hotelbook.catalog.user.entity.User user) {
+            if (userDetails instanceof User user) {
                 extraClaims.put("userId", user.getId().toString());
             }
 

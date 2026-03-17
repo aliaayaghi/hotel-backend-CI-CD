@@ -2,8 +2,11 @@ package com.HotelBook.HotelBooking.room;
 
 
 
+import com.HotelBook.HotelBooking.cancellation.CancellationPolicy;
+import com.HotelBook.HotelBooking.pricing.PricingRule;
 import com.HotelBook.HotelBooking.roomaccessibility.RoomAccessibility;
 import com.HotelBook.HotelBooking.roomamenity.RoomAmenity;
+import com.HotelBook.HotelBooking.roomavailability.RoomAvailability;
 import com.HotelBook.HotelBooking.roomphoto.RoomPhoto;
 
 
@@ -115,7 +118,18 @@ public class Room {
     @Builder.Default
     private List<RoomAccessibility> accessibilities = new ArrayList<>();
 
+    @OneToMany(mappedBy = "room", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<RoomAvailability> availabilities = new ArrayList<>();
 
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<PricingRule> pricingRules = new ArrayList<>();
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<CancellationPolicy> cancellationPolicies = new ArrayList<>();
 
 
     public boolean canAccommodate(int adults, int children) {

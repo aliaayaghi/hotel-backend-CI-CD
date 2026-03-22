@@ -27,13 +27,44 @@ public class BookingResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-   private PaymentSummary payment;
+    // Embedded summaries — avoids extra API calls on the client
+    private RoomSummary room;                         // NEW
+    private PaymentSummary payment;
     private CancellationTierSummary cancellationPolicy;
+
+
+    public static class RoomSummary {
+        private UUID roomId;
+        private String roomName;
+        private String roomType;   // "STANDARD", "SUITE", etc.
+        private String bedType;    // "KING", "TWIN", etc.
+        private Integer floor;
+        private String view;       // "SEA", "CITY", etc.
+        private BigDecimal basePrice;  // current base price (may differ from pricePerNight snapshot)
+        private Integer quantity;
+
+        public UUID getRoomId() { return roomId; }
+        public void setRoomId(UUID roomId) { this.roomId = roomId; }
+        public String getRoomName() { return roomName; }
+        public void setRoomName(String roomName) { this.roomName = roomName; }
+        public String getRoomType() { return roomType; }
+        public void setRoomType(String roomType) { this.roomType = roomType; }
+        public String getBedType() { return bedType; }
+        public void setBedType(String bedType) { this.bedType = bedType; }
+        public Integer getFloor() { return floor; }
+        public void setFloor(Integer floor) { this.floor = floor; }
+        public String getView() { return view; }
+        public void setView(String view) { this.view = view; }
+        public BigDecimal getBasePrice() { return basePrice; }
+        public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
+        public Integer getQuantity() { return quantity; }
+        public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    }
 
 
     public static class PaymentSummary {
         private UUID paymentId;
-        private String status;        // PAID, FAILED, REFUNDED, PENDING_REFUND
+        private String status;
         private BigDecimal amount;
         private BigDecimal refundAmount;
         private String paymentMethod;
@@ -56,10 +87,10 @@ public class BookingResponseDTO {
 
     public static class CancellationTierSummary {
         private UUID policyId;
-        private String tierName;           // "Free Cancellation"
-        private Integer deadlineHours;     // 168 (7 days)
-        private Integer refundPercentage;  // 100
-        private BigDecimal priceMultiplier; // 1.25
+        private String tierName;
+        private Integer deadlineHours;
+        private Integer refundPercentage;
+        private BigDecimal priceMultiplier;
 
         public UUID getPolicyId() { return policyId; }
         public void setPolicyId(UUID policyId) { this.policyId = policyId; }
@@ -127,6 +158,9 @@ public class BookingResponseDTO {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public RoomSummary getRoom() { return room; }
+    public void setRoom(RoomSummary room) { this.room = room; }
 
     public PaymentSummary getPayment() { return payment; }
     public void setPayment(PaymentSummary payment) { this.payment = payment; }

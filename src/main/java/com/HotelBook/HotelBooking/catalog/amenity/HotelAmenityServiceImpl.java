@@ -2,8 +2,8 @@ package com.HotelBook.HotelBooking.catalog.amenity;
 
 
 import com.HotelBook.HotelBooking.catalog.hotel.HotelRepository;
-import com.HotelBook.HotelBooking.catalog.user.exception.ResourceNotFoundException;
-import com.HotelBook.HotelBooking.catalog.user.exception.UnauthorizedException;
+import com.HotelBook.HotelBooking.catalog.hotel.HotelNotFoundException;
+import com.HotelBook.HotelBooking.catalog.hotel.UnauthorizedHotelAccessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -80,11 +80,11 @@ public class HotelAmenityServiceImpl implements HotelAmenityService {
     public void removeAmenity(UUID hotelId, UUID amenityId, UUID managerId) {
         // 1. Fetch the amenity
         HotelAmenity amenity = amenityRepository.findById(amenityId)
-                .orElseThrow(() -> new ResourceNotFoundException("HotelAmenity", amenityId));
+                .orElseThrow(() -> new HotelNotFoundException(amenityId));
 
         // 2. Verify it belongs to the specified hotel (prevents cross-hotel deletion)
         if (!amenity.getHotelId().equals(hotelId)) {
-            throw new ResourceNotFoundException("HotelAmenity", amenityId);
+            throw new HotelNotFoundException(amenityId);
         }
 
         // 3. Verify manager owns this hotel
@@ -99,19 +99,13 @@ public class HotelAmenityServiceImpl implements HotelAmenityService {
 
     private void verifyHotelExists(UUID hotelId) {
         if (!hotelRepository.existsById(hotelId)) {
-            throw new ResourceNotFoundException("Hotel", hotelId);
+            throw new HotelNotFoundException(hotelId);
         }
     }
 
-    /**
-     * Validates that the authenticated manager owns the hotel.
-     * Throws UnauthorizedException if not.
-     */
     private void validateManagerOwnership(UUID managerId, UUID hotelId) {
         if (!hotelRepository.existsByIdAndManager_Id(hotelId, managerId)) {
-            throw new UnauthorizedException(
-                    "You do not own hotel " + hotelId
-            );
+            throw new UnauthorizedHotelAccessException(hotelId);
         }
     }
 }

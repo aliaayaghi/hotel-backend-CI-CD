@@ -1,20 +1,14 @@
 package com.HotelBook.HotelBooking.booking;
 
-
 import com.HotelBook.HotelBooking.cancellation.CancellationPolicy;
 import com.HotelBook.HotelBooking.cancellation.CancellationPolicyService;
 import com.HotelBook.HotelBooking.common.BadRequestException;
 import com.HotelBook.HotelBooking.common.ConflictException;
 import com.HotelBook.HotelBooking.common.ResourceNotFoundException;
-import com.HotelBook.HotelBooking.payment.PaymentRepository;
 import com.HotelBook.HotelBooking.pricing.PricingRuleService;
 import com.HotelBook.HotelBooking.room.Room;
 import com.HotelBook.HotelBooking.room.RoomRepository;
 import com.HotelBook.HotelBooking.roomavailability.RoomAvailabilityService;
-
-
-
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,8 +33,8 @@ public class BookingService {
     private final RoomAvailabilityService availabilityService;
     private final PricingRuleService pricingService;
     private final CancellationPolicyService cancellationPolicyService;
-    private final PaymentRepository paymentRepository;
     private final NotificationPort notificationPort;
+
 
     @Transactional
     public BookingResponseDTO createBooking(UUID customerId, BookingRequestDTO request) {
@@ -52,20 +46,20 @@ public class BookingService {
                             "Got: checkIn=" + request.getCheckInDate() + ", checkOut=" + request.getCheckOutDate());
         }
 
-       Room room = roomRepository.findById(request.getRoomId())
+        // ── Step 2: Load and validate room ──────────────────────────────────
+        Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Room", request.getRoomId()));
 
         if (!Boolean.TRUE.equals(room.getIsActive())) {
             throw new ConflictException("Room is not currently available for booking.");
         }
 
-        // Verify room belongs to the stated hotel
         if (!room.getHotelId().equals(request.getHotelId())) {
             throw new BadRequestException(
                     "Room " + request.getRoomId() + " does not belong to hotel " + request.getHotelId());
         }
 
-        int adults = request.getAdults();
+        int adults   = request.getAdults();
         int children = request.getChildren() != null ? request.getChildren() : 0;
 
         if (!room.canAccommodate(adults, children)) {
@@ -75,7 +69,7 @@ public class BookingService {
                             "Requested: " + adults + " adults, " + children + " children.");
         }
 
-       int roomCount = request.getRoomCount() != null ? request.getRoomCount() : 1;
+        int roomCount = request.getRoomCount() != null ? request.getRoomCount() : 1;
 
         boolean available = availabilityService.isAvailable(
                 room.getId(),
@@ -92,56 +86,44 @@ public class BookingService {
                             ". Please choose different dates or a different room.");
         }
 
-      BigDecimal nightlySubtotal = pricingService.calculateTotalPrice(
-                room.getId(),
-                room.getPrice(),
-                request.getCheckInDate(),
-                request.getCheckOutDate()
+       BigDecimal nightlySubtotal = pricingService.calculateTotalPrice(
+                room.getId(), room.getPrice(),
+                request.getCheckInDate(), request.getCheckOutDate()
         );
 
-        // 5b: Determine price per night (average for display purposes)
         long numberOfNights = request.getCheckInDate().until(request.getCheckOutDate()).getDays();
         BigDecimal pricePerNight = numberOfNights > 0
                 ? nightlySubtotal.divide(BigDecimal.valueOf(numberOfNights), 2, RoundingMode.HALF_UP)
                 : room.getPrice();
 
-        // 5c: Apply cancellationPolicy.priceMultiplier
         UUID policyId = null;
         BigDecimal policyMultiplier = BigDecimal.ONE;
 
         if (request.getCancellationPolicyId() != null) {
-            // Customer specified a policy ID
             CancellationPolicy policy = cancellationPolicyService
                     .getPolicyEntityById(request.getCancellationPolicyId());
             policyId = policy.getId();
             policyMultiplier = policy.getPriceMultiplier();
-
         } else {
-            // Auto-select the default policy for this room/hotel
             var policies = cancellationPolicyService.getPoliciesForRoom(
                     request.getHotelId(), request.getRoomId());
-
             Optional<com.HotelBook.HotelBooking.cancellation.CancellationPolicyResponseDTO> defaultPolicy =
                     policies.stream().filter(p -> Boolean.TRUE.equals(p.getIsDefault())).findFirst();
-
             if (defaultPolicy.isEmpty() && !policies.isEmpty()) {
-                defaultPolicy = Optional.of(policies.get(0)); // first available
+                defaultPolicy = Optional.of(policies.get(0));
             }
-
             if (defaultPolicy.isPresent()) {
                 policyId = defaultPolicy.get().getId();
                 policyMultiplier = defaultPolicy.get().getPriceMultiplier();
             }
         }
 
-        // 5d: Final total = nightly subtotal × roomCount × policyMultiplier
         BigDecimal totalPrice = nightlySubtotal
                 .multiply(BigDecimal.valueOf(roomCount))
                 .multiply(policyMultiplier)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // ── Step 6: Save booking ─────────────────────────────────────────────
-        Booking booking = Booking.builder()
+       Booking booking = Booking.builder()
                 .customerId(customerId)
                 .hotelId(request.getHotelId())
                 .roomId(room.getId())
@@ -178,7 +160,6 @@ public class BookingService {
         booking.setStatus(BookingStatus.CONFIRMED);
         bookingRepository.save(booking);
 
-        // Block the dates NOW that payment is confirmed
         availabilityService.blockDates(
                 booking.getRoomId(),
                 booking.getCheckInDate(),
@@ -187,15 +168,10 @@ public class BookingService {
                 booking.getId()
         );
 
-        // Send confirmation notification (stub logs in dev, real email in prod)
         try {
             notificationPort.sendBookingConfirmation(
-                    booking.getCustomerId(),
-                    booking.getId(),
-                    "Hotel"  // Replace with actual hotel name from Member 1's hotel data on merge
-            );
+                    booking.getCustomerId(), booking.getId(), "Hotel");
         } catch (Exception e) {
-            // Notification failure must NEVER roll back the booking confirmation
             log.warn("Failed to send confirmation notification for booking {}: {}",
                     bookingId, e.getMessage());
         }
@@ -203,7 +179,6 @@ public class BookingService {
         log.info("Booking {} CONFIRMED — dates blocked {}-{}",
                 bookingId, booking.getCheckInDate(), booking.getCheckOutDate());
     }
-
 
     @Transactional
     public void markFailed(UUID bookingId) {
@@ -220,9 +195,8 @@ public class BookingService {
                     bookingId, e.getMessage());
         }
 
-        log.info("Booking {} marked as FAILED (payment unsuccessful)", bookingId);
+        log.info("Booking {} marked as FAILED", bookingId);
     }
-
 
     @Transactional
     public BookingResponseDTO cancelBooking(UUID bookingId, UUID customerId, String cancelledBy) {
@@ -242,7 +216,7 @@ public class BookingService {
         booking.setCancelledBy(cancelledBy);
         bookingRepository.save(booking);
 
- if (wasConfirmed) {
+        if (wasConfirmed) {
             availabilityService.unblockDates(
                     booking.getRoomId(),
                     booking.getCheckInDate(),
@@ -257,7 +231,6 @@ public class BookingService {
 
         return toResponseDTO(booking);
     }
-
 
     @Transactional
     public BookingResponseDTO completeBooking(UUID bookingId) {
@@ -276,7 +249,6 @@ public class BookingService {
         return toResponseDTO(booking);
     }
 
-
     @Transactional
     public BookingResponseDTO markNoShow(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -293,6 +265,7 @@ public class BookingService {
         log.info("Booking {} marked as NO_SHOW", bookingId);
         return toResponseDTO(booking);
     }
+
 
     @Transactional(readOnly = true)
     public BookingResponseDTO getBookingById(UUID bookingId, UUID customerId) {
@@ -317,7 +290,6 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
-
     private BookingResponseDTO toResponseDTO(Booking booking) {
         BookingResponseDTO dto = new BookingResponseDTO();
         dto.setId(booking.getId());
@@ -339,16 +311,39 @@ public class BookingService {
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());
 
-        paymentRepository.findByBookingId(booking.getId()).ifPresent(payment -> {
-            BookingResponseDTO.PaymentSummary ps = new BookingResponseDTO.PaymentSummary();
-            ps.setPaymentId(payment.getId());
-            ps.setStatus(payment.getStatus().name());
-            ps.setAmount(payment.getAmount());
-            ps.setRefundAmount(payment.getRefundAmount());
-            ps.setPaymentMethod(payment.getPaymentMethod());
-            ps.setPaidAt(payment.getPaidAt());
-            dto.setPayment(ps);
-        });
+       try {
+            Room room = booking.getRoom();
+            if (room != null) {
+                BookingResponseDTO.RoomSummary rs = new BookingResponseDTO.RoomSummary();
+                rs.setRoomId(room.getId());
+                rs.setRoomName(room.getName());
+                rs.setRoomType(room.getType() != null ? room.getType().name() : null);
+                rs.setBedType(room.getBedType() != null ? room.getBedType().name() : null);
+                rs.setFloor(room.getFloor());
+                rs.setView(room.getView() != null ? room.getView().name() : null);
+                rs.setBasePrice(room.getPrice());
+                rs.setQuantity(room.getQuantity());
+                dto.setRoom(rs);
+            }
+        } catch (Exception e) {
+            log.debug("Could not load room for booking {}: {}", booking.getId(), e.getMessage());
+        }
+
+        try {
+            com.HotelBook.HotelBooking.payment.Payment payment = booking.getPayment();
+            if (payment != null) {
+                BookingResponseDTO.PaymentSummary ps = new BookingResponseDTO.PaymentSummary();
+                ps.setPaymentId(payment.getId());
+                ps.setStatus(payment.getStatus().name());
+                ps.setAmount(payment.getAmount());
+                ps.setRefundAmount(payment.getRefundAmount());
+                ps.setPaymentMethod(payment.getPaymentMethod());
+                ps.setPaidAt(payment.getPaidAt());
+                dto.setPayment(ps);
+            }
+        } catch (Exception e) {
+            log.debug("Could not load payment for booking {}: {}", booking.getId(), e.getMessage());
+        }
 
        if (booking.getCancellationPolicyId() != null) {
             try {

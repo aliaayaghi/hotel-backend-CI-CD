@@ -1,6 +1,7 @@
 package com.HotelBook.HotelBooking.payment;
 
 
+import com.HotelBook.HotelBooking.booking.Booking;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -27,6 +28,11 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(updatable = false, nullable = false)
     private UUID id;
+
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "booking_id", insertable = false, updatable = false)
+    private Booking booking;
 
 
     @Column(name = "booking_id", nullable = false, unique = true)

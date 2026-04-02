@@ -2,6 +2,7 @@ package com.HotelBook.HotelBooking.cancellation;
 
 
 
+import com.HotelBook.HotelBooking.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +33,12 @@ public class CancellationPolicy {
 
     @Column(name = "hotel_id", nullable = false)
     private UUID hotelId;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", insertable = false, updatable = false)
+    private Room room;
+
 
     @Column(name = "room_id")
     private UUID roomId;

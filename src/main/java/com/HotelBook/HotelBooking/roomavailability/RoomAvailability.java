@@ -2,6 +2,7 @@ package com.HotelBook.HotelBooking.roomavailability;
 
 
 
+import com.HotelBook.HotelBooking.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -37,6 +38,11 @@ public class RoomAvailability {
      * WHY: keeps this module independent of the Room entity's package.
      * We can still query by roomId without needing to join the Room table.
      */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", insertable = false, updatable = false)
+    private Room room;
+
+
     @Column(name = "room_id", nullable = false)
     private UUID roomId;
 

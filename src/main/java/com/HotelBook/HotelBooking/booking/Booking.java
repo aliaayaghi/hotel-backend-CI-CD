@@ -1,4 +1,6 @@
 package com.HotelBook.HotelBooking.booking;
+import com.HotelBook.HotelBooking.payment.Payment;
+import com.HotelBook.HotelBooking.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -28,6 +30,16 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(updatable = false, nullable = false)
     private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", insertable = false, updatable = false)
+    private Room room;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id", referencedColumnName = "booking_id",
+            table = "payment", insertable = false, updatable = false)
+    private Payment payment;
+
 
     /** FK to customer/user (Member 1's entity). Plain UUID — no @ManyToOne. */
     @Column(name = "customer_id", nullable = false)

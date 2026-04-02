@@ -1,6 +1,7 @@
 package com.HotelBook.HotelBooking.pricing;
 
 
+import com.HotelBook.HotelBooking.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,6 +31,12 @@ public class PricingRule {
      * FK to room.id — plain UUID (not @ManyToOne) for module independence.
      * One room can have many pricing rules (one-to-many relationship).
      */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", insertable = false, updatable = false)
+    private Room room;
+
+
+
     @Column(name = "room_id", nullable = false)
     private UUID roomId;
 

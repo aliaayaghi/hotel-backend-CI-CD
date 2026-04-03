@@ -1,5 +1,7 @@
 package com.HotelBook.catalog.hotel;
 
+import com.HotelBook.catalog.location.LocationAlreadyExistsException;
+import com.HotelBook.catalog.location.LocationNotFoundException;
 
 import com.HotelBook.catalog.user.exception.DuplicateEmailException;
 import com.HotelBook.catalog.user.exception.InvalidCredentialsException;
@@ -11,6 +13,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +49,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestControllerAdvice
+@Component("hotelGlobalExceptionHandler")
 public class GlobalExceptionHandler {
 
     // ── 404 ───────────────────────────────────────────────────────────────────
@@ -152,4 +156,29 @@ public class GlobalExceptionHandler {
             String error,
             String message
     ) {}
+
+    @ExceptionHandler(LocationAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleLocationAlreadyExists(LocationAlreadyExistsException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(LocationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleLocationNotFound(LocationNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+            jakarta.validation.ConstraintViolationException ex) {
+
+        String message = ex.getConstraintViolations()
+                .stream()
+                .map(v -> v.getPropertyPath().toString()
+                        .replaceAll(".*\\.", "")
+                        + ": " + v.getMessage())
+                .findFirst()
+                .orElse("Invalid request parameter");
+
+        return error(HttpStatus.BAD_REQUEST, message);
+    }
 }

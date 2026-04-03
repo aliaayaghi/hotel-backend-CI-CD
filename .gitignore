@@ -60,6 +60,7 @@ application-local.properties
 application-prod.properties
 application-secrets.yml
 *-local.properties
+src/main/resources/application-local.properties
 
 ### Temporary Files ###
 *.tmp

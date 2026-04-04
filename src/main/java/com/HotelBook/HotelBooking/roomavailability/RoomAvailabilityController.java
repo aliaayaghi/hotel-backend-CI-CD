@@ -2,7 +2,7 @@ package com.HotelBook.HotelBooking.roomavailability;
 
 
 
-import com.hotelapp.common.ApiResponse;
+import com.HotelBook.HotelBooking.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

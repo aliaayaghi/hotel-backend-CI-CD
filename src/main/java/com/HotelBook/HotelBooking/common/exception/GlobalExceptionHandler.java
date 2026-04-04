@@ -1,11 +1,12 @@
 package com.HotelBook.HotelBooking.common.exception;
 
-import com.HotelBook.HotelBooking.Review.exception.ReviewNotFoundException;
+//import com.HotelBook.HotelBooking.Review.exception.ReviewNotFoundException;
 import com.HotelBook.HotelBooking.common.dto.ErrorDTO;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Component("commonExceptionHandler")
 public class GlobalExceptionHandler {
 
     // ── YOUR CUSTOM EXCEPTIONS ────────────────────────────────────────────────
@@ -27,12 +29,12 @@ public class GlobalExceptionHandler {
     }
 
     // Handles your existing ReviewNotFoundException etc.
-    @ExceptionHandler({ReviewNotFoundException.class})
-    public ResponseEntity<ErrorDTO> handleReviewNotFound(RuntimeException ex) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(ErrorDTO.of("REVIEW_NOT_FOUND", ex.getMessage()));
-    }
+//    @ExceptionHandler({ReviewNotFoundException.class})
+//    public ResponseEntity<ErrorDTO> handleReviewNotFound(RuntimeException ex) {
+//        return ResponseEntity
+//                .status(HttpStatus.NOT_FOUND)
+//                .body(ErrorDTO.of("REVIEW_NOT_FOUND", ex.getMessage()));
+//    }
 
     // ── VALIDATION ERRORS (400) ───────────────────────────────────────────────
 

@@ -1,6 +1,8 @@
 package com.HotelBook.HotelBooking.catalog.policy;
 
 
+import com.HotelBook.HotelBooking.catalog.hotel.Hotel;
+import com.HotelBook.HotelBooking.catalog.hotel.HotelRepository;
 import com.HotelBook.HotelBooking.catalog.user.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ public class CheckInPolicyServiceImpl implements CheckInPolicyService {
 
     private final CheckInPolicyRepository checkInPolicyRepository;
     private final PolicyMapper policyMapper;
+    private final HotelRepository hotelRepository;
 
     // ── Get ────────────────────────────────────────────────────────────────────
 
@@ -43,8 +46,11 @@ public class CheckInPolicyServiceImpl implements CheckInPolicyService {
             );
         }
 
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel", hotelId));
+
         CheckInPolicy policy = CheckInPolicy.builder()
-                .hotelId(hotelId)
+                .hotel(hotel)
                 .earliestTime(request.getEarliestTime())
                 .latestTime(request.getLatestTime())
                 .earlyCheckIn(request.isEarlyCheckIn())

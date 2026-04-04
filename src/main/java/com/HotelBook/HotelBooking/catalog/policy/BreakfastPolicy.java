@@ -1,5 +1,6 @@
 package com.HotelBook.HotelBooking.catalog.policy;
 
+import com.HotelBook.HotelBooking.catalog.hotel.Hotel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,7 +23,7 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "breakfast_policies",
-        uniqueConstraints = @UniqueConstraint(name = "uq_breakfast_policy_hotel", columnNames = "hotelId")
+        uniqueConstraints = @UniqueConstraint(name = "uq_breakfast_policy_hotel", columnNames = "hotel_Id")
 )
 @Getter
 @Setter
@@ -36,8 +37,9 @@ public class BreakfastPolicy {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
-    @Column(unique = true, nullable = false)
-    private UUID hotelId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id", unique = true, nullable = false)
+    private Hotel hotel;
 
     @Column(nullable = false)
     private boolean breakfastOffered;

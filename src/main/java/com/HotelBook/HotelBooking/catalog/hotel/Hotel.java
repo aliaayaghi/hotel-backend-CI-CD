@@ -1,5 +1,8 @@
 package com.HotelBook.HotelBooking.catalog.hotel;
 
+import com.HotelBook.HotelBooking.catalog.amenity.HotelAmenity;
+import com.HotelBook.HotelBooking.catalog.policy.BreakfastPolicy;
+import com.HotelBook.HotelBooking.catalog.policy.PetPolicy;
 import com.HotelBook.HotelBooking.catalog.user.entity.HotelManager;
 import jakarta.persistence.*;
 import lombok.*;
@@ -7,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -95,4 +99,13 @@ public class Hotel {
 
     @UpdateTimestamp
     private Instant updatedAt;
+
+    @OneToOne(mappedBy = "hotel", fetch = FetchType.LAZY)
+    private BreakfastPolicy breakfastPolicy;
+
+    @OneToOne(mappedBy = "hotel", fetch = FetchType.LAZY)
+    private PetPolicy petPolicy;
+
+    @OneToMany(mappedBy = "hotel", fetch = FetchType.LAZY)
+    private List<HotelAmenity> amenities;
 }

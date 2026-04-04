@@ -1,11 +1,13 @@
 package com.HotelBook.HotelBooking.catalog.policy;
 
 
+import com.HotelBook.HotelBooking.catalog.hotel.Hotel;
 import com.HotelBook.HotelBooking.catalog.user.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.HotelBook.HotelBooking.catalog.hotel.HotelRepository;
 
 import java.util.UUID;
 
@@ -16,6 +18,7 @@ public class PetPolicyServiceImpl implements PetPolicyService {
 
     private final PetPolicyRepository petPolicyRepository;
     private final PolicyMapper policyMapper;
+    private final HotelRepository hotelRepository;
 
     // ── Get ────────────────────────────────────────────────────────────────────
 
@@ -46,8 +49,11 @@ public class PetPolicyServiceImpl implements PetPolicyService {
     public PetPolicyResponse upsertPolicy(UUID hotelId, CreatePetPolicyRequest request) {
         // Load existing policy or create a new empty one
         PetPolicy policy = petPolicyRepository.findByHotelId(hotelId)
-                .orElse(PetPolicy.builder().hotelId(hotelId).build());
-
+                .orElseGet(() -> {
+                    Hotel hotel = hotelRepository.findById(hotelId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Hotel", hotelId));
+                    return PetPolicy.builder().hotel(hotel).build();
+                });
         policy.setPetsAllowed(request.getPetsAllowed());
 
         // Clear fee if pets are not allowed — avoids confusing non-null fee

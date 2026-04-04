@@ -1,5 +1,6 @@
 package com.HotelBook.HotelBooking.catalog.policy;
 
+import com.HotelBook.HotelBooking.catalog.hotel.Hotel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,7 +17,7 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "checkin_policies",
-        uniqueConstraints = @UniqueConstraint(name = "uq_checkin_hotel", columnNames = "hotelId")
+        uniqueConstraints = @UniqueConstraint(name = "uq_checkin_hotel", columnNames = "hotel_Id")
 )
 @Getter
 @Setter
@@ -30,9 +31,9 @@ public class CheckInPolicy {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
-    // Unique FK → hotels.id — enforces one policy per hotel
-    @Column(unique = true, nullable = false)
-    private UUID hotelId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id", unique = true, nullable = false)
+    private Hotel hotel;
 
     // e.g. "14:00" — time from which guests can check in
     @Column

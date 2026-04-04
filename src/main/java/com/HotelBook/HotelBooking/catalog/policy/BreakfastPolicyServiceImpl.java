@@ -2,6 +2,7 @@ package com.HotelBook.HotelBooking.catalog.policy;
 
 
 
+import com.HotelBook.HotelBooking.catalog.hotel.Hotel;
 import com.HotelBook.HotelBooking.catalog.user.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import com.HotelBook.HotelBooking.catalog.hotel.HotelRepository;
 
 @Slf4j
 @Service
@@ -17,6 +19,7 @@ public class BreakfastPolicyServiceImpl implements BreakfastPolicyService {
 
     private final BreakfastPolicyRepository breakfastPolicyRepository;
     private final PolicyMapper policyMapper;
+    private final HotelRepository hotelRepository;
 
     // ── Get ────────────────────────────────────────────────────────────────────
 
@@ -42,7 +45,11 @@ public class BreakfastPolicyServiceImpl implements BreakfastPolicyService {
     @Transactional
     public BreakfastPolicyResponse upsertPolicy(UUID hotelId, CreateBreakfastPolicyRequest request) {
         BreakfastPolicy policy = breakfastPolicyRepository.findByHotelId(hotelId)
-                .orElse(BreakfastPolicy.builder().hotelId(hotelId).build());
+                .orElseGet(() -> {
+                    Hotel hotel = hotelRepository.findById(hotelId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Hotel", hotelId));
+                    return BreakfastPolicy.builder().hotel(hotel).build();
+                });
 
         policy.setBreakfastOffered(request.getBreakfastOffered());
 

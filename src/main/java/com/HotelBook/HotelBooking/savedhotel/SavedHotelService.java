@@ -49,7 +49,10 @@ public class SavedHotelService {
 
     @Transactional
     public void unsaveHotel(UUID customerId, UUID hotelId) {
-        // Idempotent — no error if not saved (matches M1 controller contract)
+        // ── FIX: check existence before deleting so a second DELETE returns 404 ──
+        if (!savedHotelRepository.existsByCustomerIdAndHotelId(customerId, hotelId)) {
+            throw new ResourceNotFoundException("Hotel is not in your wishlist.", hotelId);
+        }
         savedHotelRepository.deleteByCustomerIdAndHotelId(customerId, hotelId);
         log.info("Customer {} unsaved hotel {}", customerId, hotelId);
     }
@@ -66,7 +69,7 @@ public class SavedHotelService {
                 .findByCustomerIdAndHotelId(customerId, hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Hotel is not in your wishlist. " +
-                                "Save it first via POST /api/saved-hotels/" ,hotelId));
+                                "Save it first via POST /api/saved-hotels/", hotelId));
 
         entity.setNotes(normaliseNotes(request));
         log.info("Customer {} updated notes for hotel {}", customerId, hotelId);

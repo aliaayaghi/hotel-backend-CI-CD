@@ -1,6 +1,6 @@
 package com.HotelBook.HotelBooking.Room;
 
-import com.HotelBook.HotelBooking.Common.ResourceNotFoundException;
+import com.HotelBook.HotelBooking.Common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

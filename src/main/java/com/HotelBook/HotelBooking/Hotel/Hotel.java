@@ -125,6 +125,6 @@ public class Hotel {
 
     // Hotel.java
     @Builder.Default
-    @OneToMany(mappedBy = "hotelId", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "hotel", fetch = FetchType.LAZY)
     private List<Room> rooms = new ArrayList<>();
 }

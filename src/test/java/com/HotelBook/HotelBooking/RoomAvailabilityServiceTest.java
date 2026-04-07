@@ -15,6 +15,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,7 +48,7 @@ class RoomAvailabilityServiceTest {
 
     @Test
     void isAvailable_returnsTrue_whenBlockedCountBelowCapacity() {
-        // 2 rooms blocked out of 5 — requesting 2 should still succeed
+        // 2 rooms blocked out of 5 — requesting 2 should still succeed (5 - 2 = 3 >= 2)
         RoomAvailability blocked = blocked(checkIn, 2);
         when(availabilityRepository.findByRoomIdAndDateIn(eq(roomId), any()))
                 .thenReturn(List.of(blocked));
@@ -105,7 +107,7 @@ class RoomAvailabilityServiceTest {
 
         availabilityService.blockDates(roomId, checkIn, checkOut, 2, bookingId);
 
-        // Existing record should have count incremented to 3
+        // Existing record should have count incremented to 3 (1 + 2)
         assertThat(existing.getBlockedCount()).isEqualTo(3);
     }
 
@@ -151,6 +153,24 @@ class RoomAvailabilityServiceTest {
 
     // ── manualBlock ────────────────────────────────────────────────────────────
 
+    /**
+     * The service validates dates BEFORE parsing the reason, so an invalid date range
+     * must throw even when the reason is valid.
+     * NOTE: "BOOKING" reason also throws, but the date validation fires first when
+     * the range is invalid, so the message contains "toDate".
+     */
+    @Test
+    void manualBlock_rejects_invalidDateRange() {
+        RoomAvailabilityRequestDTO req = new RoomAvailabilityRequestDTO();
+        req.setFromDate(checkOut);  // reversed: fromDate > toDate
+        req.setToDate(checkIn);
+        req.setReason("MAINTENANCE");
+
+        assertThatThrownBy(() -> availabilityService.manualBlock(roomId, 5, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("toDate");
+    }
+
     @Test
     void manualBlock_rejects_whenBookingReasonProvided() {
         RoomAvailabilityRequestDTO req = new RoomAvailabilityRequestDTO();
@@ -161,17 +181,6 @@ class RoomAvailabilityServiceTest {
         assertThatThrownBy(() -> availabilityService.manualBlock(roomId, 5, req))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("BOOKING");
-    }
-
-    @Test
-    void manualBlock_rejects_invalidDateRange() {
-        RoomAvailabilityRequestDTO req = new RoomAvailabilityRequestDTO();
-        req.setFromDate(checkOut);
-        req.setToDate(checkIn);   // reversed
-
-        assertThatThrownBy(() -> availabilityService.manualBlock(roomId, 5, req))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("toDate");
     }
 
     @Test
@@ -210,7 +219,7 @@ class RoomAvailabilityServiceTest {
     @Test
     void manualUnblock_rejects_invalidDateRange() {
         RoomAvailabilityRequestDTO req = new RoomAvailabilityRequestDTO();
-        req.setFromDate(checkOut);
+        req.setFromDate(checkOut);  // reversed
         req.setToDate(checkIn);
 
         assertThatThrownBy(() -> availabilityService.manualUnblock(roomId, 5, req))
@@ -237,7 +246,6 @@ class RoomAvailabilityServiceTest {
 
         assertThat(firstNight.getAvailableCount()).isEqualTo(3);   // 5 - 2
         assertThat(firstNight.getBlockedCount()).isEqualTo(2);
-
     }
 
     @Test
@@ -253,8 +261,8 @@ class RoomAvailabilityServiceTest {
                 .filter(s -> s.getDate().equals(checkIn))
                 .findFirst().orElseThrow();
 
-
         assertThat(firstNight.getAvailableCount()).isEqualTo(0);
+        assertThat(firstNight.getFullyBooked()).isTrue();
     }
 
     @Test

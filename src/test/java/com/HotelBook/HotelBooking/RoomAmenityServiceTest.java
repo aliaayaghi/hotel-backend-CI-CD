@@ -1,7 +1,5 @@
 package com.HotelBook.HotelBooking;
 
-
-
 import com.HotelBook.HotelBooking.Room.Room;
 import com.HotelBook.HotelBooking.Room.RoomRepository;
 import com.HotelBook.HotelBooking.Room.RoomView;
@@ -137,6 +135,9 @@ class RoomAmenityServiceTest {
         when(amenityRepository.findByIdAndRoomId(amenityId, roomId)).thenReturn(Optional.of(existing));
         when(amenityRepository.save(any(RoomAmenity.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        // The service skips the duplicate check when the new name matches the existing one (case-insensitive).
+        // Therefore, we must NOT stub existsByRoomIdAndNameIgnoreCase — Mockito strict-stub mode
+        // would fail if we stub a method that is never called.
         assertThatNoException().isThrownBy(
                 () -> amenityService.updateAmenity(hotelId, roomId, amenityId, req));
     }

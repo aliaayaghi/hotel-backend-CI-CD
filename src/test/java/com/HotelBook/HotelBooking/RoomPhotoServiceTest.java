@@ -100,6 +100,7 @@ class RoomPhotoServiceTest {
         when(roomRepository.findByIdAndHotelId(roomId, hotelId)).thenReturn(Optional.of(room));
         when(photoRepository.countByRoomId(roomId)).thenReturn(2L);
         when(photoRepository.existsByRoomIdAndUrl(roomId, req.getUrl())).thenReturn(false);
+        // findMaxDisplayOrderByRoomId returns int (COALESCE MAX, defaults to -1 when empty)
         when(photoRepository.findMaxDisplayOrderByRoomId(roomId)).thenReturn(4);
         when(photoRepository.save(any(RoomPhoto.class))).thenAnswer(inv -> {
             RoomPhoto p = inv.getArgument(0);
@@ -145,15 +146,15 @@ class RoomPhotoServiceTest {
     @Test
     void deletePhoto_deletesExistingPhoto() {
         UUID photoId = UUID.randomUUID();
-        RoomPhoto photo = photo(1, "https://example.com/del.jpg");
-        photo.setId(photoId);
+        RoomPhoto p = photo(1, "https://example.com/del.jpg");
+        p.setId(photoId);
 
         when(roomRepository.findByIdAndHotelId(roomId, hotelId)).thenReturn(Optional.of(room));
-        when(photoRepository.findByIdAndRoomId(photoId, roomId)).thenReturn(Optional.of(photo));
+        when(photoRepository.findByIdAndRoomId(photoId, roomId)).thenReturn(Optional.of(p));
 
         photoService.deletePhoto(hotelId, roomId, photoId);
 
-        verify(photoRepository).delete(photo);
+        verify(photoRepository).delete(p);
     }
 
     @Test

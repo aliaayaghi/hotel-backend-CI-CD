@@ -21,8 +21,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -98,15 +96,7 @@ public class GlobalExceptionHandler {
                 "Validation failed: " + fieldErrors.size() + " error(s)",
                 fieldErrors);
     }
-    @ExceptionHandler(ReviewAlreadyExistsException.class)
-    public ResponseEntity<Object> handleReviewExistsException(ReviewAlreadyExistsException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", 409); // Conflict
-        body.put("error", "Conflict");
-        body.put("message", ex.getMessage());
-        return new ResponseEntity<>(body, HttpStatus.CONFLICT);
-    }
+
     /**
      * @Validated failures on @PathVariable / @RequestParam.
      */
@@ -182,7 +172,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
-
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
+        return build(ex.getHttpStatus(), ex.getMessage(), null);
+    }
     // ══════════════════════════════════════════════════════════════════════════
     // 401 — AUTHENTICATION
     // ══════════════════════════════════════════════════════════════════════════
@@ -236,6 +233,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, ex.getMessage(), null);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), null);
+    }
+
+
     // ══════════════════════════════════════════════════════════════════════════
     // 404 — NOT FOUND
     // ══════════════════════════════════════════════════════════════════════════
@@ -265,7 +268,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoEndpoint(NoResourceFoundException ex) {
         return build(HttpStatus.NOT_FOUND,
-                "The requested endpoint does not exist", null);
+                "No route found for '" + ex.getHttpMethod() + " " + ex.getResourcePath() +
+                        "'. Please check the URL and HTTP method.", null);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -277,6 +281,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), null);
     }
+
+
+    @ExceptionHandler(ReviewAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleReviewAlreadyExists(ReviewAlreadyExistsException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), null);
+    }
+
 
     /** Email already registered during sign-up. */
     @ExceptionHandler(DuplicateEmailException.class)
@@ -323,8 +334,9 @@ public class GlobalExceptionHandler {
                     null);
         }
 
+        log.warn("Unrecognized data integrity violation: {}", root);
         return build(HttpStatus.CONFLICT,
-                "Database constraint violation: " + root, null);
+                "A data conflict occurred. Please check your request and try again.", null);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -341,6 +353,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred. Please try again.", null);
     }
+
 
     // ══════════════════════════════════════════════════════════════════════════
     // SHARED RESPONSE RECORD

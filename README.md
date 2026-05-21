@@ -4,7 +4,7 @@ A full-featured hotel booking REST API built with **Spring Boot 4**, **MySQL**, 
 
 ---
 
-## 🚀 Tech Stack
+# Stack
 
 | Layer | Technology |
 |---|---|
